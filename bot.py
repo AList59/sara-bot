@@ -7,8 +7,8 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-# Das aktuell aktive, offizielle Standardmodell von Groq:
-MODEL_NAME = "llama-3.1-8b-instant"
+# Das stabile Hauptmodell von Groq:
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -30,7 +30,6 @@ def webhook():
                 chat_id = msg["chat"]["id"]
                 user_text = msg["text"].strip()
                 
-                # Direkter Aufruf an Groq
                 headers = {
                     "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type": "application/json"
@@ -52,7 +51,6 @@ def webhook():
                 else:
                     reply_text = f"⚠️ Groq API Fehler: Status {res.status_code}\nAntwort: {res.text}"
                 
-                # Antwort an Telegram senden
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                 requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
                 
@@ -64,4 +62,3 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
