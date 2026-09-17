@@ -15,11 +15,10 @@ def run_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# --- Feste Tokens direkt im Code für diesen Test ---
+# --- Feste Tokens direkt im Code ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
 
-# Saras neue Persönlichkeit: Extrem herzlich, Komplimente, Hocharabisch + Irakisch, A1-Lehrerin
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
     "Du machst deinem Schüler oft charmante Komplimente, nimmst ihn an die Hand und gibst ihm ein sicheres und geborgenes Gefühl. "
@@ -32,7 +31,7 @@ SYSTEM_PROMPT = (
 def call_groq(user_message):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
         "Content-Type": "application/json"
     }
     data = {
@@ -45,12 +44,13 @@ def call_groq(user_message):
     try:
         response = requests.post(url, json=data, headers=headers)
         res_json = response.json()
-        if "choices" in res_json:
+        
+        if response.status_code == 200 and "choices" in res_json:
             return res_json["choices"][0]["message"]["content"]
         else:
-            return f"API-Antwort unerwartet: {res_json}"
+            return f"Groq Fehler ({response.status_code}): {res_json}"
     except Exception as e:
-        return f"Es gab einen kleinen Fehler: {e}"
+        return f"Verbindungsfehler: {e}"
 
 def send_telegram_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -81,22 +81,14 @@ def poll_telegram():
                         user_text = update["message"]["text"]
                         
                         print(f"Nachricht erhalten von {chat_id}: {user_text}")
-                        
-                        # Antwort von Groq (Sara) generieren lassen
                         bot_reply = call_groq(user_text)
-                        
-                        # An Telegram zurückschicken
                         send_telegram_message(chat_id, bot_reply)
         except Exception as e:
             print(f"Polling-Fehler: {e}")
             time.sleep(5)
 
-# --- Start der Anwendung ---
 if __name__ == '__main__':
-    # Starte den Telegram-Polling-Loop in einem separaten Hintergrund-Thread
     t = threading.Thread(target=poll_telegram)
     t.daemon = True
     t.start()
-    
-    # Starte den Flask-Webserver im Hauptthread (für Render Port-Binding)
     run_server()
