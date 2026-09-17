@@ -77,7 +77,7 @@ def poll_telegram():
                         chat_id = update["message"]["chat"]["id"]
                         user_text = update["message"]["text"]
                         
-                        print(Nachricht erhalten von {chat_id}: {user_text})
+                        print(f"Nachricht erhalten von {chat_id}: {user_text}")
                         
                         # Antwort von Groq (Sara) generieren lassen
                         bot_reply = call_groq(user_text)
@@ -97,4 +97,3 @@ if __name__ == '__main__':
     
     # Starte den Flask-Webserver im Hauptthread (für Render Port-Binding)
     run_server()
-
