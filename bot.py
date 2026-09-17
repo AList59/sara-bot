@@ -1,22 +1,24 @@
-import os
-import threading
 import time
 import requests
+import threading
+import os
 from flask import Flask
 
+# --- Mini-Webserver für Render ---
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Sara Bot läuft 24/7!"
+    return "Sara Bot läuft 24/7 in der Cloud!"
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
+# --- Originale Konfiguration mit neuem Key und Prompt ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
-MODEL_NAME = "llama3-8b-8192"  # Garantiert aktives Standardmodell
+MODEL_NAME = "llama3-8b-8192"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -35,35 +37,29 @@ def ask_ai(chat_id, user_text):
         conversations[chat_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
     
     conversations[chat_id].append({"role": "user", "content": user_text})
+    if len(conversations[chat_id]) > 10:
+        conversations[chat_id] = [conversations[chat_id][0]] + conversations[chat_id][-8:]
 
     try:
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": MODEL_NAME,
-            "messages": conversations[chat_id]
-        }
-        
-        response = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=20)
-        res_json = response.json()
-        
-        if response.status_code == 200 and "choices" in res_json:
-            reply = res_json["choices"][0]["message"]["content"]
-            conversations[chat_id].append({"role": "assistant", "content": reply})
-            return reply
-        else:
-            return f"API-Fehler: {res_json}"
-    except Exception as e:
-        return f"Verbindungsfehler: {e}"
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            json={"model": MODEL_NAME, "messages": conversations[chat_id], "temperature": 0.5, "max_tokens": 300},
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            timeout=10
+        )
+        if res.status_code == 200:
+            bot_reply = res.json()["choices"][0]["message"]["content"]
+            conversations[chat_id].append({"role": "assistant", "content": bot_reply})
+            return bot_reply
+        return f"API-Fehler: {res.status_code}"
+    except Exception:
+        return "عذراً، لم أفهَم جيدا. هل نعود إلى درس الألمانية؟ 🇩🇪"
 
 def main():
     offset = 0
-    print("Bot gestartet und bereit...")
     while True:
         try:
-            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=20", timeout=25)
+            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=10", timeout=12)
             data = res.json()
             if data.get("ok"):
                 for update in data.get("result", []):
@@ -74,7 +70,7 @@ def main():
                         reply = ask_ai(chat_id, txt)
                         send_message(chat_id, reply)
         except Exception:
-            time.sleep(2)
+            time.sleep(1)
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_server)
