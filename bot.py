@@ -17,19 +17,21 @@ SYSTEM_PROMPT = (
 
 @app.route('/')
 def home():
-    return "Sara Bot läuft fehlerfrei!"
+    return "Sara Bot Webhook aktiv!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
     try:
-        data = request.get_json()
-        print("EMPFANGEN:", data)
+        # Rohdaten auslesen, egal wie Telegram sie schickt
+        data = request.get_json(force=True, silent=True)
+        print("--> DATEN EMPFANGEN:", data)
         
         if data and "message" in data:
             msg = data["message"]
             if "text" in msg:
                 chat_id = msg["chat"]["id"]
                 user_text = msg["text"].strip()
+                print(f"--> NACHRICHT VON {chat_id}: {user_text}")
                 
                 # Anfrage an Groq senden
                 headers = {
@@ -50,22 +52,21 @@ def webhook():
                 
                 if res.status_code == 200:
                     reply_text = res.json()["choices"][0]["message"]["content"]
+                    print("--> ANTWORT VON GROQ ERFOLGREICH")
                 else:
-                    print(f"GROQ FEHLER {res.status_code}: {res.text}")
+                    print(f"--> GROQ FEHLER {res.status_code}: {res.text}")
                     reply_text = f"عذراً يا روحي، حدث خطأ تقني ({res.status_code})."
                 
-                # Antwort an Telegram zurückschicken
+                # An Telegram senden
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                 r = requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
-                print("TELEGRAM SEND STATUS:", r.status_code)
+                print("--> TELEGRAM SEND STATUS:", r.status_code)
                 
     except Exception as e:
-        print(f"FEHLER: {e}")
+        print(f"--> KRITISCHER FEHLER IM WEBHOOK: {e}")
         
     return "OK", 200
 
 if __name__ == "__main__":
-    # Render übergibt den Port dynamisch über die Umgebungsvariable PORT
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
