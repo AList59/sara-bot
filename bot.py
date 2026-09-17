@@ -74,7 +74,7 @@ def main():
                 for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat']['id']
+                        chat_id = update["message"]["chat"]["id"]
                         txt = update["message"]["text"].strip()
                         print(f"Nachricht empfangen: {txt}")
                         reply = ask_ai(chat_id, txt)
