@@ -15,9 +15,9 @@ def run_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# --- Telegram Bot Logik mit Groq API ---
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+# --- Feste Tokens direkt im Code für diesen Test ---
+TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
+GROQ_API_KEY = "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"
 
 # Saras neue Persönlichkeit: Extrem herzlich, Komplimente, Hocharabisch + Irakisch, A1-Lehrerin
 SYSTEM_PROMPT = (
