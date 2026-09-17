@@ -4,8 +4,10 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+# --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
-GROQ_API_KEY = "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" 
+GROQ_API_KEY = "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" 
+MODEL_NAME = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -13,30 +15,9 @@ SYSTEM_PROMPT = (
     "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich!"
 )
 
-def get_dynamic_model():
-    """Wählt automatisch ein echtes Chat-Modell aus und ignoriert Guard-/Sicherheitsmodelle."""
-    try:
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
-        res = requests.get("https://api.groq.com/openai/v1/models", headers=headers, timeout=5)
-        if res.status_code == 200:
-            models = res.json().get("data", [])
-            model_ids = [m["id"] for m in models]
-            
-            # Suche nach Llama-Chat-Modellen, schließe Guard/Vision aus
-            for m in model_ids:
-                m_lower = m.lower()
-                if "llama" in m_lower and "guard" not in m_lower and "vision" not in m_lower:
-                    return m
-            if model_ids:
-                return model_ids[0]
-    except Exception as e:
-        print(f"Fehler beim Abrufen der Modelle: {e}")
-    
-    return "llama-3.3-70b-versatile"
-
 @app.route('/')
 def home():
-    return "Sara Bot läuft!"
+    return "Sara Bot läuft fehlerfrei!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
@@ -48,15 +29,12 @@ def webhook():
                 chat_id = msg["chat"]["id"]
                 user_text = msg["text"].strip()
                 
-                chosen_model = get_dynamic_model()
-                print(f"Verwende Chat-Modell: {chosen_model}")
-
                 headers = {
                     "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": chosen_model,
+                    "model": MODEL_NAME,
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": user_text}
