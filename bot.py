@@ -7,7 +7,7 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-MODEL_NAME = "llama-3.1-8b-instant"
+MODEL_NAME = "llama3-70b-8192"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -17,7 +17,7 @@ SYSTEM_PROMPT = (
 
 @app.route('/')
 def home():
-    return "Sara Bot läuft fehlerfrei!"
+    return "Sara Bot läuft!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
