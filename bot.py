@@ -49,6 +49,18 @@ def call_groq(user_message):
     except Exception as e:
         return f"Es gab einen kleinen Fehler: {e}"
 
+def send_telegram_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Fehler beim Senden an Telegram: {e}")
+
 def poll_telegram():
     offset = 0
     print("Telegram Polling gestartet...")
@@ -65,17 +77,24 @@ def poll_telegram():
                         chat_id = update["message"]["chat"]["id"]
                         user_text = update["message"]["text"]
                         
-                        reply_text = call_groq(user_text)
+                        print(Nachricht erhalten von {chat_id}: {user_text})
                         
-                        send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-                        requests.post(send_url, json={"chat_id": chat_id, "text": reply_text})
+                        # Antwort von Groq (Sara) generieren lassen
+                        bot_reply = call_groq(user_text)
+                        
+                        # An Telegram zurückschicken
+                        send_telegram_message(chat_id, bot_reply)
         except Exception as e:
-            print(f"Fehler beim Polling: {e}")
+            print(f"Polling-Fehler: {e}")
             time.sleep(5)
 
-if __name__ == "__main__":
-    server_thread = threading.Thread(target=run_server)
-    server_thread.daemon = True
-    server_thread.start()
+# --- Start der Anwendung ---
+if __name__ == '__main__':
+    # Starte den Telegram-Polling-Loop in einem separaten Hintergrund-Thread
+    t = threading.Thread(target=poll_telegram)
+    t.daemon = True
+    t.start()
     
-    poll_telegram()
+    # Starte den Flask-Webserver im Hauptthread (für Render Port-Binding)
+    run_server()
+
