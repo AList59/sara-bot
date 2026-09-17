@@ -34,30 +34,40 @@ def ask_ai(user_text):
         if res.status_code == 200:
             return res.json()["choices"][0]["message"]["content"]
         else:
+            print(f"Groq API Fehler: {res.status_code} - {res.text}")
             return f"عذراً يا روحي، حدث خطأ تقني ({res.status_code}). قل لي مجدداً! 😊"
     except Exception as e:
+        print(f"Groq Exception: {e}")
         return "عذراً يا عيوني، الشبكة بطيئة عندي شوية. اعِد لي رسالتك! 🌸"
 
 @app.route('/')
 def home():
-    return "Sara Bot Webhook läuft 24/7!"
+    return "Sara Bot ist bereit und läuft!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
-    data = request.get_json()
-    if data and "message" in data:
-        msg = data["message"]
-        if "text" in msg:
-            chat_id = msg["chat"]["id"]
-            user_text = msg["text"].strip()
-            
-            # Antwort von AI holen
-            reply_text = ask_ai(user_text)
-            
-            # An Telegram senden
-            send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-            requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
-            
+    try:
+        data = request.get_json()
+        print(f"📥 Telegram Update erhalten: {data}")
+        
+        if data and "message" in data:
+            msg = data["message"]
+            if "text" in msg:
+                chat_id = msg["chat"]["id"]
+                user_text = msg["text"].strip()
+                print(f"💬 Nachricht von Chat {chat_id}: {user_text}")
+                
+                # Antwort von der KI generieren
+                reply_text = ask_ai(user_text)
+                
+                # Antwort an Telegram senden
+                send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+                r = requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
+                print(f"📤 Telegram Antwort Status: {r.status_code}")
+                
+    except Exception as e:
+        print(f"❌ Fehler im Webhook: {e}")
+        
     return "OK", 200
 
 if __name__ == "__main__":
