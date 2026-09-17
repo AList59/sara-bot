@@ -18,7 +18,6 @@ def run_server():
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-# Aktuelles, stabiles Modell von Groq:
 MODEL_NAME = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = (
@@ -26,6 +25,15 @@ SYSTEM_PROMPT = (
     "Du sprichst eine wunderschöne Mischung aus Hocharabisch und irakischem Dialekt. "
     "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich!"
 )
+
+def clear_webhook():
+    # Löscht eventuell blockierende Webhooks, damit getUpdates sauber läuft
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        requests.get(url, timeout=5)
+        print("Webhook erfolgreich zurückgesetzt.")
+    except Exception as e:
+        print(f"Konnte Webhook nicht löschen: {e}")
 
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -59,7 +67,7 @@ def ask_ai(chat_id, user_text):
             res_json = res.json()
             return res_json["choices"][0]["message"]["content"]
         else:
-            print(f"🚨 GROQ FEHLER: {res.status_code} - {res.text}")
+            print(f"🚨 GROQ FEHLER: {res.status_status if hasattr(res, 'status_status') else res.status_code} - {res.text}")
             return f"عذراً يا روحي، حدث خطأ تقني ({res.status_code}). قل لي مجدداً! 😊"
             
     except Exception as e:
@@ -67,6 +75,7 @@ def ask_ai(chat_id, user_text):
         return "عذراً يا عيوني، الشبكة بطيئة عندي شوية. اعِد لي رسالتك! 🌸"
 
 def main():
+    clear_webhook()
     offset = 0
     print("Bot Polling gestartet...")
     while True:
@@ -77,12 +86,13 @@ def main():
                 for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat"]["id"]
+                        chat_id = update["message"]["chat_id"] if "chat_id" in update["message"] else update["message"]["chat"]["id"]
                         txt = update["message"]["text"].strip()
                         print(f"Nachricht empfangen: {txt}")
                         reply = ask_ai(chat_id, txt)
                         send_message(chat_id, reply)
-        except Exception:
+        except Exception as ex:
+            print(f"Polling Fehler: {ex}")
             time.sleep(1)
 
 if __name__ == "__main__":
