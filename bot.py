@@ -13,7 +13,7 @@ def home():
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
@@ -26,20 +26,14 @@ SYSTEM_PROMPT = (
     "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich!"
 )
 
-def clear_webhook():
-    # Löscht eventuell blockierende Webhooks, damit getUpdates sauber läuft
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true"
-        requests.get(url, timeout=5)
-        print("Webhook erfolgreich zurückgesetzt.")
-    except Exception as e:
-        print(f"Konnte Webhook nicht löschen: {e}")
-
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=5)
+    try:
+        requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=5)
+    except Exception as e:
+        print(f"Fehler beim Senden: {e}")
 
-def ask_ai(chat_id, user_text):
+def ask_ai(user_text):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
@@ -67,7 +61,7 @@ def ask_ai(chat_id, user_text):
             res_json = res.json()
             return res_json["choices"][0]["message"]["content"]
         else:
-            print(f"🚨 GROQ FEHLER: {res.status_status if hasattr(res, 'status_status') else res.status_code} - {res.text}")
+            print(f"🚨 GROQ FEHLER: {res.status_code} - {res.text}")
             return f"عذراً يا روحي، حدث خطأ تقني ({res.status_code}). قل لي مجدداً! 😊"
             
     except Exception as e:
@@ -75,27 +69,40 @@ def ask_ai(chat_id, user_text):
         return "عذراً يا عيوني، الشبكة بطيئة عندي شوية. اعِد لي رسالتك! 🌸"
 
 def main():
-    clear_webhook()
+    # Alten Webhook löschen, damit getUpdates funktioniert
+    try:
+        requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true", timeout=5)
+    except:
+        pass
+
     offset = 0
-    print("Bot Polling gestartet...")
+    print("Bot Polling erfolgreich gestartet...")
+    
     while True:
         try:
-            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=10", timeout=12)
+            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=25", timeout=30)
             data = res.json()
             if data.get("ok"):
                 for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat_id"] if "chat_id" in update["message"] else update["message"]["chat"]["id"]
+                        chat_id = update["message"]["chat"]["id"]
                         txt = update["message"]["text"].strip()
-                        print(f"Nachricht empfangen: {txt}")
-                        reply = ask_ai(chat_id, txt)
+                        print(f"Nachricht empfangen von {chat_id}: {txt}")
+                        
+                        # KI nach Antwort fragen
+                        reply = ask_ai(txt)
+                        
+                        # Antwort an Telegram senden
                         send_message(chat_id, reply)
         except Exception as ex:
-            print(f"Polling Fehler: {ex}")
-            time.sleep(1)
+            print(f"Polling-Schleifenfehler: {ex}")
+            time.sleep(2)
 
 if __name__ == "__main__":
-    t = threading.Thread(target=run_server)
-    t.start()
+    # Webserver in einem separaten Hintergrund-Thread starten
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+    
+    # Haupt-Thread für das Telegram-Polling nutzen
     main()
