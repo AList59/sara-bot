@@ -26,28 +26,24 @@ SYSTEM_PROMPT = (
     "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich!"
 )
 
-conversations = {}
-
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=5)
 
 def ask_ai(chat_id, user_text):
-    if chat_id not in conversations:
-        conversations[chat_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    
-    conversations[chat_id].append({"role": "user", "content": user_text})
-    
-    # Verlauf begrenzen, damit die Nachricht nicht zu lang wird
-    if len(conversations[chat_id]) > 11:
-        conversations[chat_id] = [conversations[chat_id][0]] + conversations[chat_id][-9:]
+    # Wir bauen den Nachrichten-Payload bei jeder Anfrage frisch auf, 
+    # damit alter Müll im Verlauf keine 400er Fehler mehr auslösen kann.
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_text}
+    ]
 
     try:
         res = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             json={
                 "model": MODEL_NAME, 
-                "messages": conversations[chat_id], 
+                "messages": messages, 
                 "temperature": 0.6, 
                 "max_tokens": 300
             },
@@ -60,9 +56,7 @@ def ask_ai(chat_id, user_text):
         
         if res.status_code == 200:
             res_json = res.json()
-            bot_reply = res_json["choices"][0]["message"]["content"]
-            conversations[chat_id].append({"role": "assistant", "content": bot_reply})
-            return bot_reply
+            return res_json["choices"][0]["message"]["content"]
         else:
             print(f"Groq API Fehler: {res.text}")
             return f"عذراً يا روحي، حدث خطأ تقني ({res.status_code}). قل لي مجدداً! 😊"
