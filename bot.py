@@ -15,7 +15,7 @@ def run_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-# --- Konfiguration mit dem ursprünglichen Llama-Modell ---
+# --- Konfiguration mit deinem neuen API-Key ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
 MODEL_NAME = "llama3-8b-8192"
@@ -56,11 +56,11 @@ def ask_ai(chat_id, user_text):
             res_json = res.json()
             return res_json["choices"][0]["message"]["content"]
         else:
-            print(f"🚨 GROQ FEHLER ANTWORT: {res.status_code} - {res.text}")
+            print(f"Groq API Fehler: {res.text}")
             return f"عذراً يا روحي، حدث خطأ تقني ({res.status_code}). قل لي مجدداً! 😊"
             
     except Exception as e:
-        print(f"🚨 EXCEPTION: {e}")
+        print(f"Exception: {e}")
         return "عذراً يا عيوني، الشبكة بطيئة عندي شوية. اعِد لي رسالتك! 🌸"
 
 def main():
@@ -76,10 +76,9 @@ def main():
                     if "message" in update and "text" in update["message"]:
                         chat_id = update["message"]["chat"]["id"]
                         txt = update["message"]["text"].strip()
-                        print(f"Nachricht empfangen: {txt}")
                         reply = ask_ai(chat_id, txt)
                         send_message(chat_id, reply)
-        except Exception as ex:
+        except Exception:
             time.sleep(1)
 
 if __name__ == "__main__":
