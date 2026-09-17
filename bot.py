@@ -15,9 +15,9 @@ def run_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-# --- Konfiguration ---
+# --- Konfiguration mit deinem neuen SaraBot Key ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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" 
 MODEL_NAME = "llama3-8b-8192"
 
 SYSTEM_PROMPT = (
@@ -31,8 +31,6 @@ def send_message(chat_id, text):
     requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=5)
 
 def ask_ai(chat_id, user_text):
-    # Wir bauen den Nachrichten-Payload bei jeder Anfrage frisch auf, 
-    # damit alter Müll im Verlauf keine 400er Fehler mehr auslösen kann.
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_text}
