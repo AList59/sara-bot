@@ -7,7 +7,8 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-MODEL_NAME = "llama-3.3-70b-versatile"
+# Umstellung auf das bewährte, stabile Modell:
+MODEL_NAME = "llama3-8b-8192"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -22,7 +23,6 @@ def home():
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
     try:
-        # Rohdaten auslesen, egal wie Telegram sie schickt
         data = request.get_json(force=True, silent=True)
         print("--> DATEN EMPFANGEN:", data)
         
@@ -33,7 +33,6 @@ def webhook():
                 user_text = msg["text"].strip()
                 print(f"--> NACHRICHT VON {chat_id}: {user_text}")
                 
-                # Anfrage an Groq senden
                 headers = {
                     "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type": "application/json"
@@ -57,7 +56,6 @@ def webhook():
                     print(f"--> GROQ FEHLER {res.status_code}: {res.text}")
                     reply_text = f"عذراً يا روحي، حدث خطأ تقني ({res.status_code})."
                 
-                # An Telegram senden
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                 r = requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
                 print("--> TELEGRAM SEND STATUS:", r.status_code)
