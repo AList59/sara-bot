@@ -36,7 +36,7 @@ def call_groq(user_message):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "llama3-70b-8192",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message}
@@ -45,7 +45,10 @@ def call_groq(user_message):
     try:
         response = requests.post(url, json=data, headers=headers)
         res_json = response.json()
-        return res_json["choices"][0]["message"]["content"]
+        if "choices" in res_json:
+            return res_json["choices"][0]["message"]["content"]
+        else:
+            return f"API-Antwort unerwartet: {res_json}"
     except Exception as e:
         return f"Es gab einen kleinen Fehler: {e}"
 
