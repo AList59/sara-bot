@@ -17,7 +17,7 @@ def run_server():
 
 # --- Feste Tokens direkt im Code ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 
 # Saras liebevolle Persönlichkeit als A1-Lehrerin (Hocharabisch + Irakisch)
 SYSTEM_PROMPT = (
