@@ -22,6 +22,14 @@ MODEL_NAME = "llama-3.1-8b-instant"
 
 conversations = {}
 
+def clear_webhook():
+    """Löscht eventuell aktive Webhooks bei Telegram, damit getUpdates funktioniert."""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        requests.get(url, timeout=5)
+    except Exception:
+        pass
+
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     requests.post(url, json={"chat_id": chat_id, "text": text}, timeout=5)
@@ -50,6 +58,7 @@ def ask_ai(chat_id, user_text):
         return f"عذراً، حدث خطأ تقني. ({e})"
 
 def main():
+    clear_webhook()
     offset = 0
     while True:
         try:
