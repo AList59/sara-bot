@@ -7,7 +7,8 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-MODEL_NAME = "llama-3.1-8b-instant"
+# Bewährtes Standardmodell von Groq:
+MODEL_NAME = "llama3-8b-8192"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -48,22 +49,18 @@ def home():
 def webhook():
     try:
         data = request.get_json()
-        print(f"📥 Telegram Update erhalten: {data}")
-        
         if data and "message" in data:
             msg = data["message"]
             if "text" in msg:
                 chat_id = msg["chat"]["id"]
                 user_text = msg["text"].strip()
-                print(f"💬 Nachricht von Chat {chat_id}: {user_text}")
                 
                 # Antwort von der KI generieren
                 reply_text = ask_ai(user_text)
                 
                 # Antwort an Telegram senden
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-                r = requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
-                print(f"📤 Telegram Antwort Status: {r.status_code}")
+                requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
                 
     except Exception as e:
         print(f"❌ Fehler im Webhook: {e}")
