@@ -7,8 +7,8 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-# Bewährtes Standardmodell von Groq:
-MODEL_NAME = "llama3-8b-8192"
+# Stabiles, aktuelles Groq-Modell:
+MODEL_NAME = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
