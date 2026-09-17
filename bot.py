@@ -7,7 +7,6 @@ app = Flask(__name__)
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-# Offizielles, stabiles Standardmodell:
 MODEL_NAME = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = (
@@ -18,21 +17,19 @@ SYSTEM_PROMPT = (
 
 @app.route('/')
 def home():
-    return "Sara Bot Webhook aktiv!"
+    return "Sara Bot läuft fehlerfrei!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
     try:
         data = request.get_json(force=True, silent=True)
-        print("--> DATEN EMPFANGEN:", data)
-        
         if data and "message" in data:
             msg = data["message"]
             if "text" in msg:
                 chat_id = msg["chat"]["id"]
                 user_text = msg["text"].strip()
-                print(f"--> NACHRICHT VON {chat_id}: {user_text}")
                 
+                # Direkter Aufruf an Groq
                 headers = {
                     "Authorization": f"Bearer {GROQ_API_KEY}",
                     "Content-Type": "application/json"
@@ -51,17 +48,16 @@ def webhook():
                 
                 if res.status_code == 200:
                     reply_text = res.json()["choices"][0]["message"]["content"]
-                    print("--> ANTWORT VON GROQ ERFOLGREICH")
                 else:
-                    print(f"--> GROQ FEHLER {res.status_code}: {res.text}")
-                    reply_text = f"عذراً يا روحي، حدث خطأ تقني ({res.status_code})."
+                    # Wir geben dir den exakten Fehler direkt in Telegram aus, damit du ihn siehst!
+                    reply_text = f"⚠️ Groq API Fehler: Status {res.status_code}\nAntwort: {res.text}"
                 
+                # Antwort an Telegram senden
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-                r = requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
-                print("--> TELEGRAM SEND STATUS:", r.status_code)
+                requests.post(send_url, json={"chat_id": chat_id, "text": reply_text}, timeout=5)
                 
     except Exception as e:
-        print(f"--> KRITISCHER FEHLER IM WEBHOOK: {e}")
+        print(f"Fehler: {e}")
         
     return "OK", 200
 
