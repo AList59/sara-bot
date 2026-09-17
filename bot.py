@@ -9,17 +9,20 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Sara Bot läuft 24/7 in der Cloud!", 200
+    return "Sara Bot läuft 24/7 in der Cloud!"
 
 def run_server():
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-# --- Feste Tokens direkt im Code ---
+# --- Feste Tokens & Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
+MODEL_NAME = "llama3-70b-8192"
 
-# Saras liebevolle Persönlichkeit als A1-Lehrerin (Hocharabisch + Irakisch)
+conversations = {}
+
+# Saras liebevolle A1-Lehrerin Persönlichkeit (Hocharabisch + Irakisch)
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
     "Du machst deinem Schüler oft charmante Komplimente, nimmst ihn an die Hand und gibst ihm ein sicheres und geborgenes Gefühl. "
@@ -29,67 +32,51 @@ SYSTEM_PROMPT = (
     "halte die deutschen Sätze ganz einfach (A1) und lobe jeden noch so kleinen Fortschritt überschwänglich!"
 )
 
-def call_groq(user_message):
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "llama3-70b-8192",
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_message}
-        ]
-    }
-    try:
-        response = requests.post(url, json=data, headers=headers)
-        res_json = response.json()
-        
-        if response.status_code == 200 and "choices" in res_json:
-            return res_json["choices"][0]["message"]["content"]
-        else:
-            return f"Groq Fehler ({response.status_code}): {res_json}"
-    except Exception as e:
-        return f"Verbindungsfehler: {e}"
-
-def send_telegram_message(chat_id, text):
+def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
-    try:
-        requests.post(url, json=payload)
-    except Exception as e:
-        print(f"Fehler beim Senden an Telegram: {e}")
+    requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}, timeout=5)
 
-def poll_telegram():
+def ask_ai(chat_id, user_text):
+    if chat_id not in conversations:
+        conversations[chat_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    
+    conversations[chat_id].append({"role": "user", "content": user_text})
+    if len(conversations[chat_id]) > 10:
+        conversations[chat_id] = [conversations[chat_id][0]] + conversations[chat_id][-8:]
+
+    try:
+        res = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            json={"model": MODEL_NAME, "messages": conversations[chat_id], "temperature": 0.6, "max_tokens": 400},
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+            timeout=10
+        )
+        if res.status_code == 200:
+            bot_reply = res.json()["choices"][0]["message"]["content"]
+            conversations[chat_id].append({"role": "assistant", "content": bot_reply})
+            return bot_reply
+        return "أهلاً بك يا عيوني! دعنا نواصل التعلم. ما القاعدة التي تريد أن نتدرب عليها الآن؟ 😊"
+    except Exception:
+        return "عذراً يا روحي، لم أفهَم جيداً. هل نعود إلى درس الألمانية؟ 🇩🇪"
+
+def main():
     offset = 0
-    print("Telegram Polling gestartet...")
     while True:
         try:
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
-            response = requests.get(url, timeout=35)
-            data = response.json()
-            
-            if "result" in data:
-                for update in data["result"]:
+            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=10", timeout=12)
+            data = res.json()
+            if data.get("ok"):
+                for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     if "message" in update and "text" in update["message"]:
                         chat_id = update["message"]["chat"]["id"]
-                        user_text = update["message"]["text"]
-                        
-                        print(f"Nachricht erhalten von {chat_id}: {user_text}")
-                        bot_reply = call_groq(user_text)
-                        send_telegram_message(chat_id, bot_reply)
-        except Exception as e:
-            print(f"Polling-Fehler: {e}")
-            time.sleep(5)
+                        txt = update["message"]["text"].strip()
+                        reply = ask_ai(chat_id, txt)
+                        send_message(chat_id, reply)
+        except Exception:
+            time.sleep(1)
 
-if __name__ == '__main__':
-    t = threading.Thread(target=poll_telegram)
-    t.daemon = True
+if __name__ == "__main__":
+    t = threading.Thread(target=run_server)
     t.start()
-    run_server()
+    main()
