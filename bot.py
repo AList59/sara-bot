@@ -18,7 +18,8 @@ def run_server():
 # --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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" 
-MODEL_NAME = "llama3-8b-8192"
+# Aktuelles, stabiles Modell von Groq:
+MODEL_NAME = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
