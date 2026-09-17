@@ -15,15 +15,16 @@ def run_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-# --- Originale Konfiguration mit neuem Key und Prompt ---
+# --- Konfiguration ---
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
 MODEL_NAME = "llama3-8b-8192"
 
-SYSTEM_PROMPT = (
+SYSTEM_INSTRUCTION = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
     "Du sprichst eine wunderschöne Mischung aus Hocharabisch und irakischem Dialekt. "
-    "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich!"
+    "Erkläre Grammatik auf Arabisch, halte deutsche Sätze sehr einfach (A1) und lobe den Schüler immer herzlich! "
+    "Hier ist die Nachricht des Schülers: "
 )
 
 conversations = {}
@@ -34,11 +35,14 @@ def send_message(chat_id, text):
 
 def ask_ai(chat_id, user_text):
     if chat_id not in conversations:
-        conversations[chat_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
+        conversations[chat_id] = []
     
-    conversations[chat_id].append({"role": "user", "content": user_text})
+    # Wir hängen die Rolle direkt als "user" an, um 400er API-Fehler zu umgehen
+    full_prompt = SYSTEM_INSTRUCTION + user_text if len(conversations[chat_id]) == 0 else user_text
+    
+    conversations[chat_id].append({"role": "user", "content": full_prompt})
     if len(conversations[chat_id]) > 10:
-        conversations[chat_id] = [conversations[chat_id][0]] + conversations[chat_id][-8:]
+        conversations[chat_id] = conversations[chat_id][-8:]
 
     try:
         res = requests.post(
@@ -51,8 +55,11 @@ def ask_ai(chat_id, user_text):
             bot_reply = res.json()["choices"][0]["message"]["content"]
             conversations[chat_id].append({"role": "assistant", "content": bot_reply})
             return bot_reply
-        return f"API-Fehler: {res.status_code}"
-    except Exception:
+        else:
+            print(f"Groq API Fehler Details: {res.text}")
+            return f"عذراً يا روحي، حدث خطأ ({res.status_code}). قل لي مجدداً! 😊"
+    except Exception as e:
+        print(f"Exception: {e}")
         return "عذراً، لم أفهَم جيدا. هل نعود إلى درس الألمانية؟ 🇩🇪"
 
 def main():
