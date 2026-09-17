@@ -14,29 +14,29 @@ SYSTEM_PROMPT = (
 )
 
 def get_dynamic_model():
-    """Fragt live bei Groq ab, welche Modelle für diesen Key verfügbar sind, und wählt automatisch eins aus."""
+    """Wählt automatisch ein echtes Chat-Modell aus und ignoriert Guard-/Sicherheitsmodelle."""
     try:
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
         res = requests.get("https://api.groq.com/openai/v1/models", headers=headers, timeout=5)
         if res.status_code == 200:
             models = res.json().get("data", [])
             model_ids = [m["id"] for m in models]
-            print("Verfügbare Modelle auf diesem Key:", model_ids)
             
-            # Sucht automatisch nach einem Llama-Modell
+            # Suche nach Llama-Chat-Modellen, schließe Guard/Vision aus
             for m in model_ids:
-                if "llama" in m.lower() and "vision" not in m.lower():
+                m_lower = m.lower()
+                if "llama" in m_lower and "guard" not in m_lower and "vision" not in m_lower:
                     return m
             if model_ids:
                 return model_ids[0]
     except Exception as e:
         print(f"Fehler beim Abrufen der Modelle: {e}")
     
-    return "llama-3.1-8b-instant"
+    return "llama-3.3-70b-versatile"
 
 @app.route('/')
 def home():
-    return "Sara Bot dynamisch aktiv!"
+    return "Sara Bot läuft!"
 
 @app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
 def webhook():
@@ -49,7 +49,7 @@ def webhook():
                 user_text = msg["text"].strip()
                 
                 chosen_model = get_dynamic_model()
-                print(f"Verwende Modell: {chosen_model}")
+                print(f"Verwende Chat-Modell: {chosen_model}")
 
                 headers = {
                     "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -83,4 +83,3 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
