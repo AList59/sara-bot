@@ -67,7 +67,7 @@ def send_telegram_message(chat_id, text):
 
 def poll_telegram():
     offset = 0
-    print("Telegram Polling gestartet...")
+    print("Telegram Polling gestartet und bereit für Nachrichten...")
     while True:
         try:
             url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
@@ -85,11 +85,12 @@ def poll_telegram():
                         bot_reply = call_groq(user_text)
                         send_telegram_message(chat_id, bot_reply)
         except Exception as e:
-            print(f"Polling-Fehler: {e}")
-            time.sleep(5)
+            print(f"Polling-Fehler aufgetreten: {e}")
+            time.sleep(3)
 
 if __name__ == '__main__':
     t = threading.Thread(target=poll_telegram)
     t.daemon = True
     t.start()
     run_server()
+
