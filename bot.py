@@ -16,6 +16,7 @@ def run_server():
 
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
+MODEL_NAME = "llama-3.3-70b-8192"  # Aktualisiertes, aktives Modell
 
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
@@ -41,7 +42,7 @@ def ask_ai(chat_id, user_text):
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "llama3-70b-8192",
+            "model": MODEL_NAME,
             "messages": conversations[chat_id]
         }
         
@@ -53,7 +54,6 @@ def ask_ai(chat_id, user_text):
             conversations[chat_id].append({"role": "assistant", "content": reply})
             return reply
         else:
-            # Zeigt den echten Fehler direkt im Chat, damit wir sofort sehen, was los ist
             return f"API-Fehler: {res_json}"
     except Exception as e:
         return f"Verbindungsfehler: {e}"
@@ -80,4 +80,3 @@ if __name__ == "__main__":
     t = threading.Thread(target=run_server)
     t.start()
     main()
-
