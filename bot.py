@@ -22,7 +22,7 @@ MODEL_NAME = "llama3-70b-8192"
 
 conversations = {}
 
-# Saras liebevolle A1-Lehrerin Persönlichkeit (Hocharabisch + Irakisch)
+# Saras liebevolle A1-Lehrerin Persönlichkeit
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
     "Du machst deinem Schüler oft charmante Komplimente, nimmst ihn an die Hand und gibst ihm ein sicheres und geborgenes Gefühl. "
@@ -34,7 +34,10 @@ SYSTEM_PROMPT = (
 
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}, timeout=5)
+    try:
+        requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}, timeout=5)
+    except Exception as e:
+        print(f"Telegram Sende-Fehler: {e}")
 
 def ask_ai(chat_id, user_text):
     if chat_id not in conversations:
@@ -45,25 +48,39 @@ def ask_ai(chat_id, user_text):
         conversations[chat_id] = [conversations[chat_id][0]] + conversations[chat_id][-8:]
 
     try:
-        res = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            json={"model": MODEL_NAME, "messages": conversations[chat_id], "temperature": 0.6, "max_tokens": 400},
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-            timeout=10
-        )
-        if res.status_code == 200:
-            bot_reply = res.json()["choices"][0]["message"]["content"]
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY.strip()}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": MODEL_NAME,
+            "messages": conversations[chat_id],
+            "temperature": 0.7,
+            "max_tokens": 400
+        }
+        
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=15)
+        print(f"Groq Status Code: {response.status_code}")
+        
+        res_json = response.json()
+        
+        if response.status_code == 200 and "choices" in res_json:
+            bot_reply = res_json["choices"][0]["message"]["content"]
             conversations[chat_id].append({"role": "assistant", "content": bot_reply})
             return bot_reply
-        return "أهلاً بك يا عيوني! دعنا نواصل التعلم. ما القاعدة التي تريد أن نتدرب عليها الآن؟ 😊"
-    except Exception:
-        return "عذراً يا روحي، لم أفهَم جيداً. هل نعود إلى درس الألمانية؟ 🇩🇪"
+        else:
+            print(f"Groq Fehler-Details: {res_json}")
+            return f"عذراً يا روحي، حدث خطأ تقني صغير من سرعة الإرسال. قل لي مجدداً: كيف حالك اليوم؟ 😊"
+    except Exception as e:
+        print(f"Ausnahme bei Groq-Anfrage: {e}")
+        return f"عذراً يا عيوني، الشبكة بطيئة عندي شوية. عid لي رسالتك! 🌸"
 
 def main():
     offset = 0
+    print("Bot-Polling gestartet...")
     while True:
         try:
-            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=10", timeout=12)
+            res = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=20", timeout=25)
             data = res.json()
             if data.get("ok"):
                 for update in data.get("result", []):
@@ -71,10 +88,12 @@ def main():
                     if "message" in update and "text" in update["message"]:
                         chat_id = update["message"]["chat"]["id"]
                         txt = update["message"]["text"].strip()
+                        print(f"Nachricht empfangen von {chat_id}: {txt}")
                         reply = ask_ai(chat_id, txt)
                         send_message(chat_id, reply)
-        except Exception:
-            time.sleep(1)
+        except Exception as e:
+            print(f"Polling-Fehler: {e}")
+            time.sleep(2)
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_server)
