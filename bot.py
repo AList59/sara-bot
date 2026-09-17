@@ -19,6 +19,7 @@ def run_server():
 TELEGRAM_TOKEN = "8820827837:AAG38KWi7Xiy2gmrr2Tszd7HzfEtPFi4omo"
 GROQ_API_KEY = "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"
 
+# Saras liebevolle Persönlichkeit als A1-Lehrerin (Hocharabisch + Irakisch)
 SYSTEM_PROMPT = (
     "Du bist 'Sara', eine extrem herzliche, liebevolle und motivierende A1-Deutschlehrerin. "
     "Du machst deinem Schüler oft charmante Komplimente, nimmst ihn an die Hand und gibst ihm ein sicheres und geborgenes Gefühl. "
