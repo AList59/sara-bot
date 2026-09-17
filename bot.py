@@ -56,7 +56,6 @@ def ask_ai(chat_id, user_text):
             res_json = res.json()
             return res_json["choices"][0]["message"]["content"]
         else:
-            # HIER DRUCKEN WIR DEN ECHTEN FEHLER IN DIE RENDER-LOGS!
             print(f"🚨 GROQ FEHLER ANTWORT: {res.status_code} - {res.text}")
             return f"عذراً يا روحي، خطأ من سيرفر قروق ({res.status_code})."
             
@@ -75,9 +74,9 @@ def main():
                 for update in data.get("result", []):
                     offset = update["update_id"] + 1
                     if "message" in update and "text" in update["message"]:
-                        chat_id = update["message"]["chat"]["id"]
+                        chat_id = update["message"]["chat']['id']
                         txt = update["message"]["text"].strip()
-                        print(Nachricht empfangen: {txt})
+                        print(f"Nachricht empfangen: {txt}")
                         reply = ask_ai(chat_id, txt)
                         send_message(chat_id, reply)
         except Exception as ex:
